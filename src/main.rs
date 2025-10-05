@@ -26,7 +26,7 @@ macro_rules! gen_body {
     };
     (@body $typ:ident $name:ident = $val:expr; $($rest: tt)*) => {
        #[allow(unused_mut)]
-       let mut $name: i32 = $val; 
+       let mut $name: c_ty!($typ) = $val; 
        gen_body! {@body $($rest)* }
 
     };
@@ -46,6 +46,8 @@ macro_rules! c_ty {
     (float) => { f32 };
     (ptr_int) => { *mut i32 };
     (void) => { () };
+
+    ($ty: tt) => { $ty };
 }
 
 fn magic_rust_fn() -> i32 { 
@@ -56,7 +58,35 @@ fn print(t: &str) {
     println!("{t}");
 }
 
+#[derive(Debug)]
+struct Human(u64);
+
+impl core::ops::Add for Human {
+    type Output = Human;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Human(self.0 + rhs.0)
+    }
+}
+
 c_rust! {
+    Human create_human() {
+        Human a = Human(10);
+        Human b = Human(20);
+    
+
+        Human c = a + b;
+
+        return c;
+   }
+
+   int rust_c_types() {
+        int a = 2;
+        i32 b = 2;
+
+        return a + b;
+   }
+    
    int c_other() {
         return 2;
    }
@@ -75,6 +105,6 @@ c_rust! {
 
 fn main() {
     unsafe {
-      println!("{} {} {}", c_start(), null_pointer().addr(), c_other()); 
+      println!("{} {} {} {:?} {}", c_start(), null_pointer().addr(), c_other(), create_human(), rust_c_types()); 
     }
 }
