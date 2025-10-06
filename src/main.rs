@@ -5,39 +5,61 @@ macro_rules! c_rust {
 }
 
 macro_rules! parse_c {
-    ($($typ:ident $fn_name:ident () { $($body:tt)* } )*) => {
-        $(
-            unsafe fn $fn_name() -> c_ty!($typ) {
-                #[allow(unused_unsafe)]
-                unsafe {
-                    gen_body!(@body $($body)*);
-                }
-            }
-        )*
+    (
+        typedef struct { $($ty:ident $field:ident;)* } $name:ident;
+        $($rest:tt)*
+    ) => {
+        struct $name {
+            $( $field: c_ty!($ty), )*
+        }
+        parse_c! { $($rest)* }
     };
+
+    (
+        $ret:ident $fn_name:ident ($($ty: ident $arg_name: ident),*) { $($body:tt)* }
+        $($rest:tt)*
+    ) => {
+        unsafe fn $fn_name($($arg_name: c_ty!($ty)),*) -> c_ty!($ret) {
+            #[allow(unused_unsafe)]
+            unsafe {
+                gen_body! { $($body)* }
+            }
+        }
+        parse_c! { $($rest)* }
+    };
+
+    () => {};
 }
 
-macro_rules! gen_body { 
-    (@body $typ:ident $name:ident = ($cast_ty:ident)$val:expr; $($rest: tt)*) => {
+macro_rules! gen_body {
+    (typedef struct { $($ty:ident $field_name:ident;)* } $name: ident; $($rest: tt)*) => {
+        struct $name {
+            $(
+                $field_name: c_ty!($ty),
+            )*
+        }
+        gen_body! { $($rest)* }
+    };
+    ($typ:ident $name:ident = ($cast_ty:ident)$val:expr; $($rest: tt)*) => {
        #[allow(unused_mut, unnecessary_transmutes)]
-       let mut $name: c_ty!($cast_ty) = unsafe { ::core::mem::transmute($val) }; 
-       gen_body! {@body $($rest)* }
+       let mut $name: c_ty!($cast_ty) = unsafe { ::core::mem::transmute($val) };
+       gen_body! {$($rest)* }
 
     };
-    (@body $typ:ident $name:ident = $val:expr; $($rest: tt)*) => {
+    ($typ:ident $name:ident = $val:expr; $($rest: tt)*) => {
        #[allow(unused_mut)]
-       let mut $name: c_ty!($typ) = $val; 
-       gen_body! {@body $($rest)* }
+       let mut $name: c_ty!($typ) = $val;
+       gen_body! { $($rest)* }
 
     };
-    (@body $name:ident = $ex:expr; $($rest: tt)*) => {
+    ($name:ident = $ex:expr; $($rest: tt)*) => {
             $name = $ex;
-            gen_body! { @body $($rest)* }
+            gen_body! { $($rest)* }
     };
-    (@body return $body: expr;) => { 
+    (return $body: expr;) => {
         return $body;
     };
- 
+
 }
 
 macro_rules! c_ty {
@@ -50,7 +72,7 @@ macro_rules! c_ty {
     ($ty: tt) => { $ty };
 }
 
-fn magic_rust_fn() -> i32 { 
+fn magic_rust_fn() -> i32 {
     90
 }
 
@@ -69,11 +91,25 @@ impl core::ops::Add for Human {
     }
 }
 
+fn rust_c_human() -> CHuman {
+    CHuman { c_level: 20 }
+}
+
 c_rust! {
+    typedef struct { int c_level; } CHuman;
+
+    int sum(int a, int b) {
+       return a + b;
+    }
+
+    CHuman create_chuman() {
+        return rust_c_human();
+    }
+
     Human create_human() {
         Human a = Human(10);
         Human b = Human(20);
-    
+
 
         Human c = a + b;
 
@@ -86,7 +122,7 @@ c_rust! {
 
         return a + b;
    }
-    
+
    int c_other() {
         return 2;
    }
@@ -99,12 +135,19 @@ c_rust! {
    float c_start() {
        float d = (float)20;
 
-       return d; 
+       return d;
    }
 }
 
 fn main() {
     unsafe {
-      println!("{} {} {} {:?} {}", c_start(), null_pointer().addr(), c_other(), create_human(), rust_c_types()); 
+        println!(
+            "{} {} {} {:?} {}",
+            c_start(),
+            null_pointer().addr(),
+            c_other(),
+            create_human(),
+            rust_c_types()
+        );
     }
 }
