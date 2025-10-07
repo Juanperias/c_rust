@@ -16,6 +16,17 @@ macro_rules! parse_c {
     };
 
     (
+        struct $name:ident { $($ty:ident $field:ident;)* };
+        $($rest:tt)*
+    ) => {
+        struct $name {
+            $( $field: c_ty!($ty), )*
+        }
+        parse_c! { $($rest)* }
+    };
+
+
+    (
         $ret:ident $fn_name:ident ($($ty: ident $arg_name: ident),*) { $($body:tt)* }
         $($rest:tt)*
     ) => {
@@ -56,6 +67,16 @@ macro_rules! gen_body {
             $name = $ex;
             gen_body! { $($rest)* }
     };
+        (
+        struct $name:ident { $($ty:ident $field:ident;)* };
+        $($rest:tt)*
+    ) => {
+        struct $name {
+            $( $field: c_ty!($ty), )*
+        }
+        parse_c! { $($rest)* }
+    };
+
     (return $body: expr;) => {
         return $body;
     };
@@ -95,8 +116,18 @@ fn rust_c_human() -> CHuman {
     CHuman { c_level: 20 }
 }
 
+impl RustHuman {
+    pub fn new() -> Self {
+        Self { skill_issue: 90 }
+    }
+}
+
 c_rust! {
     typedef struct { int c_level; } CHuman;
+
+    struct RustHuman {
+        int skill_issue;
+    };
 
     int sum(int a, int b) {
        return a + b;
