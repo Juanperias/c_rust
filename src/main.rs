@@ -57,6 +57,11 @@ macro_rules! gen_body {
        gen_body! {$($rest)* }
 
     };
+    (auto $name:ident = $val:expr; $($rest: tt)*) => {
+        #[allow(unused_mut)]
+        let mut $name = $val;
+        gen_body! { $($rest)* }
+    };
     ($typ:ident $name:ident = $val:expr; $($rest: tt)*) => {
        #[allow(unused_mut)]
        let mut $name: c_ty!($typ) = $val;
@@ -146,6 +151,7 @@ c_rust! {
     Human create_human() {
         Human a = Human(10);
         Human b = Human(20);
+        auto c = Human(90);
 
 
         Human c = a + b;
@@ -169,6 +175,16 @@ c_rust! {
         return a;
    }
 
+   int sergio_match(int b) {
+      int c = match b {
+         0 => 1,
+         2 => 0,
+         _ => 99,
+      };
+
+      return c;
+   }
+
    float c_start() {
        float d = (float)20;
 
@@ -186,15 +202,4 @@ c_rust! {
     }
 }
 
-fn main() {
-    unsafe {
-        println!(
-            "{} {} {} {:?} {}",
-            c_start(),
-            null_pointer().addr(),
-            c_other(),
-            create_human(),
-            rust_c_types()
-        );
-    }
-}
+fn main() {}
