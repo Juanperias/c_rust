@@ -30,7 +30,7 @@ macro_rules! parse_c {
         $ret:ident $fn_name:ident ($($ty: ident $arg_name: ident),*) { $($body:tt)* }
         $($rest:tt)*
     ) => {
-        unsafe fn $fn_name($($arg_name: c_ty!($ty)),*) -> c_ty!($ret) {
+        unsafe fn $fn_name($($arg_name: c_ty!($ty)),*) -> c_ty!($ret)  {
             #[allow(unused_unsafe)]
             unsafe {
                 gen_body! { $($body)* }
@@ -79,6 +79,12 @@ macro_rules! gen_body {
 
     (return $body: expr;) => {
         return $body;
+    };
+
+    ($block:expr; $($rest: tt)*) => {
+        let _ = $block;
+
+        parse_c! { $($rest)* }
     };
 
 }
@@ -168,6 +174,16 @@ c_rust! {
 
        return d;
    }
+}
+
+fn hello(name: String) {
+    println!("Hello {}", name);
+}
+
+c_rust! {
+    void call_hello(String name) {
+        hello(name);
+    }
 }
 
 fn main() {
