@@ -89,8 +89,10 @@ macro_rules! gen_body {
     ($block:expr; $($rest: tt)*) => {
         let _ = $block;
 
-        parse_c! { $($rest)* }
+        gen_body! { $($rest)* }
     };
+
+    () => {}
 
 }
 
